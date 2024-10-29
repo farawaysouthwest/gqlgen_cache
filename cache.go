@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/hashicorp/golang-lru/v2/expirable"
+	"log/slog"
+	"os"
 	"reflect"
 	"time"
 
@@ -14,9 +16,10 @@ import (
 )
 
 type fieldCache struct {
-	mu    sync.RWMutex
-	cap   int
-	store *expirable.LRU[uint64, cacheField]
+	mu     sync.RWMutex
+	cap    int
+	store  *expirable.LRU[uint64, cacheField]
+	logger *slog.Logger
 }
 
 type cacheField struct {
@@ -37,29 +40,35 @@ type FieldCache interface {
 	Handle(ctx context.Context, obj interface{}, next graphql.Resolver, maxAge *int) (res interface{}, err error)
 }
 
-func NewFieldCache(cap int, ttl time.Duration) FieldCache {
+func NewFieldCache(cap int, ttl time.Duration, logLevel slog.Level) FieldCache {
 
 	s := expirable.NewLRU[uint64, cacheField](cap, nil, ttl)
 
+	l := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
+
 	return &fieldCache{
-		cap:   cap,
-		store: s,
+		cap:    cap,
+		store:  s,
+		logger: l,
 	}
 }
 
 func (c *fieldCache) Handle(ctx context.Context, obj interface{}, next graphql.Resolver, maxAge *int) (res interface{}, err error) {
 
-	key := c.generateKey(ctx, obj)
+	key, stringKey := c.generateKey(ctx, obj)
 	if v, ok := c.get(key); ok {
+		c.logger.Debug("cache hit", "key", stringKey)
 		return v, nil
 	}
 
+	c.logger.Debug("cache miss", "key", stringKey)
 	res, err = next(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	c.set(key, *maxAge, res)
+	c.logger.Debug("cache set", "key", stringKey)
 	return res, nil
 }
 
@@ -86,7 +95,7 @@ func (c *fieldCache) findIdField(obj interface{}) (string, error) {
 	return "", errors.New("id field not found")
 }
 
-func (c *fieldCache) generateKey(ctx context.Context, obj interface{}) uint64 {
+func (c *fieldCache) generateKey(ctx context.Context, obj interface{}) (uint64, string) {
 
 	queryContext := graphql.GetOperationContext(ctx)
 	fieldContext := graphql.GetFieldContext(ctx)
@@ -94,7 +103,7 @@ func (c *fieldCache) generateKey(ctx context.Context, obj interface{}) uint64 {
 	id, err := c.findIdField(obj)
 	if err != nil {
 		fmt.Println("Error finding ID field:", err)
-		return 0
+		return 0, ""
 	}
 
 	// Create a struct to hold the relevant data
@@ -110,9 +119,9 @@ func (c *fieldCache) generateKey(ctx context.Context, obj interface{}) uint64 {
 	hash := fnv.New64a()
 
 	if _, err := hash.Write([]byte(b)); err != nil {
-		return 0
+		return 0, ""
 	}
-	return hash.Sum64()
+	return hash.Sum64(), b
 }
 
 func (c *fieldCache) get(k uint64) (interface{}, bool) {
@@ -126,6 +135,7 @@ func (c *fieldCache) get(k uint64) (interface{}, bool) {
 	}
 
 	if v.created+int64(v.maxAge) < time.Now().Unix() {
+		c.logger.Debug("cache expired", "key", k)
 		c.release(k)
 		return nil, false
 	}

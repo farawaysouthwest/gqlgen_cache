@@ -5,6 +5,7 @@ import (
 	"github.com/farawaysouthwest/gqlgen_cache"
 	"github.com/farawaysouthwest/gqlgen_cache/example/graph"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -23,7 +24,7 @@ func main() {
 		port = defaultPort
 	}
 
-	cache := gqlgen_cache.NewFieldCache(100, time.Second*5)
+	cache := gqlgen_cache.NewFieldCache(100, time.Second*5, slog.LevelDebug)
 
 	c := graph.Config{Resolvers: &graph.Resolver{}}
 	c.Directives.CacheControl = cache.Handle
