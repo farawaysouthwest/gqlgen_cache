@@ -88,6 +88,8 @@ models:
     fields:
       text:
         resolver: true
+      user:
+        resolver: true
 
   ID:
     model:

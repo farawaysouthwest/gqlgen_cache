@@ -10,6 +10,12 @@ type Todo {
   id: ID!
   text: String! @cacheControl(maxAge: 10)
   done: Boolean!
+  user: User! @cacheControl(maxAge: 10)
+}
+
+type User {
+  id: ID!
+  name: String!
 }
 
 type Query {

@@ -2,9 +2,11 @@ package gqlgen_cache
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/hashicorp/golang-lru/v2/expirable"
+	"reflect"
 	"time"
 
 	"hash/fnv"
@@ -24,12 +26,15 @@ type cacheField struct {
 	data    interface{}
 }
 
+type keyData struct {
+	FieldName  string
+	Args       map[string]interface{}
+	ObjectName string
+	parent     interface{}
+}
+
 type FieldCache interface {
 	Handle(ctx context.Context, obj interface{}, next graphql.Resolver, maxAge *int) (res interface{}, err error)
-	Get(uint64) (interface{}, bool)
-	Set(uint64, int, interface{})
-	GenerateKey(obj interface{}) uint64
-	Release(uint64)
 }
 
 func NewFieldCache(cap int, ttl time.Duration) FieldCache {
@@ -43,12 +48,9 @@ func NewFieldCache(cap int, ttl time.Duration) FieldCache {
 }
 
 func (c *fieldCache) Handle(ctx context.Context, obj interface{}, next graphql.Resolver, maxAge *int) (res interface{}, err error) {
-	if maxAge == nil || obj == nil {
-		return next(ctx)
-	}
 
-	key := c.GenerateKey(obj)
-	if v, ok := c.Get(key); ok {
+	key := c.generateKey(ctx, obj)
+	if v, ok := c.get(key); ok {
 		return v, nil
 	}
 
@@ -57,30 +59,63 @@ func (c *fieldCache) Handle(ctx context.Context, obj interface{}, next graphql.R
 		return nil, err
 	}
 
-	c.Set(key, *maxAge, res)
+	c.set(key, *maxAge, res)
 	return res, nil
 }
 
-func (c *fieldCache) GenerateKey(obj interface{}) uint64 {
+func (c *fieldCache) findIdField(obj interface{}) (string, error) {
+	v := reflect.ValueOf(obj)
 
-	if obj == nil {
-		return 0
+	// Ensure we have a pointer to a struct
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
 	}
 
-	b, err := json.Marshal(obj)
+	if v.Kind() != reflect.Struct {
+		return "", errors.New("expected a struct or a pointer to a struct")
+	}
+
+	// Iterate over the fields of the struct
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Type().Field(i)
+		if field.Name == "ID" || field.Name == "Id" || field.Name == "id" {
+			return v.Field(i).String(), nil
+		}
+	}
+
+	return "", errors.New("id field not found")
+}
+
+func (c *fieldCache) generateKey(ctx context.Context, obj interface{}) uint64 {
+
+	queryContext := graphql.GetOperationContext(ctx)
+	fieldContext := graphql.GetFieldContext(ctx)
+
+	id, err := c.findIdField(obj)
 	if err != nil {
+		fmt.Println("Error finding ID field:", err)
 		return 0
 	}
+
+	// Create a struct to hold the relevant data
+	data := keyData{
+		FieldName:  fieldContext.Field.Name,
+		Args:       queryContext.Variables,
+		ObjectName: fieldContext.Object,
+		parent:     id,
+	}
+
+	b := fmt.Sprint(data.ObjectName, ":", data.FieldName, ":", data.Args, ":", data.parent)
 
 	hash := fnv.New64a()
 
-	if _, err := hash.Write(b); err != nil {
+	if _, err := hash.Write([]byte(b)); err != nil {
 		return 0
 	}
 	return hash.Sum64()
 }
 
-func (c *fieldCache) Get(k uint64) (interface{}, bool) {
+func (c *fieldCache) get(k uint64) (interface{}, bool) {
 
 	c.mu.RLock()
 	v, ok := c.store.Get(k)
@@ -91,14 +126,14 @@ func (c *fieldCache) Get(k uint64) (interface{}, bool) {
 	}
 
 	if v.created+int64(v.maxAge) < time.Now().Unix() {
-		c.Release(k)
+		c.release(k)
 		return nil, false
 	}
 
 	return v.data, ok
 }
 
-func (c *fieldCache) Set(k uint64, maxAge int, v interface{}) {
+func (c *fieldCache) set(k uint64, maxAge int, v interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -110,7 +145,7 @@ func (c *fieldCache) Set(k uint64, maxAge int, v interface{}) {
 	})
 }
 
-func (c *fieldCache) Release(k uint64) {
+func (c *fieldCache) release(k uint64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.store.Remove(k)

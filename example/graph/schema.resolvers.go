@@ -43,6 +43,16 @@ func (r *todoResolver) Text(ctx context.Context, obj *model.Todo) (string, error
 	return fmt.Sprint("todo text", rand.Int()), nil
 }
 
+// User is the resolver for the user field.
+func (r *todoResolver) User(ctx context.Context, obj *model.Todo) (*model.User, error) {
+	time.Sleep(2 * time.Second)
+
+	return &model.User{
+		ID:   "1",
+		Name: "John Doe",
+	}, nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
