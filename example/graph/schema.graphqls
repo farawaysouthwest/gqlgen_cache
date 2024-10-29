@@ -19,7 +19,7 @@ type User {
 }
 
 type Query {
-  todos: [Todo!]!
+  todos(test: String): [Todo!]! @cacheControl(maxAge: 10)
 }
 
 input NewTodo {

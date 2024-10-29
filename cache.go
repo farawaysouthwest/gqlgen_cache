@@ -56,19 +56,25 @@ func NewFieldCache(cap int, ttl time.Duration, logLevel slog.Level) FieldCache {
 func (c *fieldCache) Handle(ctx context.Context, obj interface{}, next graphql.Resolver, maxAge *int) (res interface{}, err error) {
 
 	key, stringKey := c.generateKey(ctx, obj)
+
+	// If key is 0, skip caching
+	if key == 0 {
+		return next(ctx)
+	}
+
 	if v, ok := c.get(key); ok {
-		c.logger.Debug("cache hit", "key", stringKey)
+		c.logger.Debug("cache hit", "key", stringKey, "hash", key)
 		return v, nil
 	}
 
-	c.logger.Debug("cache miss", "key", stringKey)
+	c.logger.Debug("cache miss", "key", stringKey, "hash", key)
 	res, err = next(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	c.set(key, *maxAge, res)
-	c.logger.Debug("cache set", "key", stringKey)
+	c.logger.Debug("cache set", "key", stringKey, "hash", key)
 	return res, nil
 }
 
@@ -81,7 +87,11 @@ func (c *fieldCache) findIdField(obj interface{}) (string, error) {
 	}
 
 	if v.Kind() != reflect.Struct {
-		return "", errors.New("expected a struct or a pointer to a struct")
+		if v.Kind() == reflect.String {
+			return v.String(), nil
+		}
+
+		return "", errors.New("expected a struct or a string")
 	}
 
 	// Iterate over the fields of the struct
@@ -102,7 +112,7 @@ func (c *fieldCache) generateKey(ctx context.Context, obj interface{}) (uint64, 
 
 	id, err := c.findIdField(obj)
 	if err != nil {
-		fmt.Println("Error finding ID field:", err)
+		c.logger.Debug("id not found", "error", err)
 		return 0, ""
 	}
 

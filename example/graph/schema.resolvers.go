@@ -19,7 +19,7 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) 
 }
 
 // Todos is the resolver for the todos field.
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
+func (r *queryResolver) Todos(ctx context.Context, test *string) ([]*model.Todo, error) {
 	// delay to simulate a slow query
 
 	todos := []*model.Todo{
