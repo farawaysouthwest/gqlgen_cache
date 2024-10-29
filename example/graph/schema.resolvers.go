@@ -7,10 +7,10 @@ package graph
 import (
 	"context"
 	"fmt"
-	"github.com/farawaysouthwest/gqlgen_cache/example/graph/model"
-
 	"math/rand"
 	"time"
+
+	"github.com/farawaysouthwest/gqlgen_cache/example/graph/model"
 )
 
 // CreateTodo is the resolver for the createTodo field.
@@ -38,7 +38,7 @@ func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
 
 // Text is the resolver for the text field.
 func (r *todoResolver) Text(ctx context.Context, obj *model.Todo) (string, error) {
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	return fmt.Sprint("todo text", rand.Int()), nil
 }

@@ -23,10 +23,10 @@ func main() {
 		port = defaultPort
 	}
 
-	cache := gqlgen_cache.NewFieldCache(100, time.Minute*1)
+	cache := gqlgen_cache.NewFieldCache(100, time.Second*5)
 
 	c := graph.Config{Resolvers: &graph.Resolver{}}
-	c.Directives.Cache = cache.Handle
+	c.Directives.CacheControl = cache.Handle
 
 	http.Handle("/query", handler.NewDefaultServer(graph.NewExecutableSchema(c)))
 	http.Handle("/", playground.Handler("Todo", "/query"))

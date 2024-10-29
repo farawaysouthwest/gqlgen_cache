@@ -2,20 +2,13 @@
 #
 # https://gqlgen.com/getting-started/
 
-directive @cache(
+directive @cacheControl(
   maxAge: Int
 ) on FIELD_DEFINITION
 
-directive @hasRole(role: Role!) on FIELD_DEFINITION
-
-enum Role {
-  ADMIN
-  USER
-}
-
 type Todo {
   id: ID!
-  text: String! @cache(maxAge: 10)
+  text: String! @cacheControl(maxAge: 10)
   done: Boolean!
 }
 

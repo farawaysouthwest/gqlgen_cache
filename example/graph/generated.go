@@ -45,8 +45,8 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
-	Cache   func(ctx context.Context, obj interface{}, next graphql.Resolver, maxAge *int) (res interface{}, err error)
-	HasRole func(ctx context.Context, obj interface{}, next graphql.Resolver, role model.Role) (res interface{}, err error)
+	CacheControl func(ctx context.Context, obj interface{}, next graphql.Resolver, maxAge *int) (res interface{}, err error)
+	HasRole      func(ctx context.Context, obj interface{}, next graphql.Resolver, role model.Role) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -259,17 +259,17 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) dir_cache_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) dir_cacheControl_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	arg0, err := ec.dir_cache_argsMaxAge(ctx, rawArgs)
+	arg0, err := ec.dir_cacheControl_argsMaxAge(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
 	args["maxAge"] = arg0
 	return args, nil
 }
-func (ec *executionContext) dir_cache_argsMaxAge(
+func (ec *executionContext) dir_cacheControl_argsMaxAge(
 	ctx context.Context,
 	rawArgs map[string]interface{},
 ) (*int, error) {
@@ -316,7 +316,7 @@ func (ec *executionContext) dir_hasRole_argsRole(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
 	if tmp, ok := rawArgs["role"]; ok {
-		return ec.unmarshalNRole2githubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋgraphᚋmodelᚐRole(ctx, tmp)
+		return ec.unmarshalNRole2githubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋexampleᚋgraphᚋmodelᚐRole(ctx, tmp)
 	}
 
 	var zeroVal model.Role
@@ -339,7 +339,7 @@ func (ec *executionContext) field_Mutation_createTodo_argsInput(
 ) (model.NewTodo, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 	if tmp, ok := rawArgs["input"]; ok {
-		return ec.unmarshalNNewTodo2githubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋgraphᚋmodelᚐNewTodo(ctx, tmp)
+		return ec.unmarshalNNewTodo2githubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋexampleᚋgraphᚋmodelᚐNewTodo(ctx, tmp)
 	}
 
 	var zeroVal model.NewTodo
@@ -451,7 +451,7 @@ func (ec *executionContext) _Mutation_createTodo(ctx context.Context, field grap
 	}
 	res := resTmp.(*model.Todo)
 	fc.Result = res
-	return ec.marshalNTodo2ᚖgithubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋgraphᚋmodelᚐTodo(ctx, field.Selections, res)
+	return ec.marshalNTodo2ᚖgithubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋexampleᚋgraphᚋmodelᚐTodo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createTodo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -514,7 +514,7 @@ func (ec *executionContext) _Query_todos(ctx context.Context, field graphql.Coll
 	}
 	res := resTmp.([]*model.Todo)
 	fc.Result = res
-	return ec.marshalNTodo2ᚕᚖgithubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋgraphᚋmodelᚐTodoᚄ(ctx, field.Selections, res)
+	return ec.marshalNTodo2ᚕᚖgithubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋexampleᚋgraphᚋmodelᚐTodoᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_todos(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -735,11 +735,11 @@ func (ec *executionContext) _Todo_text(ctx context.Context, field graphql.Collec
 				var zeroVal string
 				return zeroVal, err
 			}
-			if ec.directives.Cache == nil {
+			if ec.directives.CacheControl == nil {
 				var zeroVal string
-				return zeroVal, errors.New("directive cache is not implemented")
+				return zeroVal, errors.New("directive cacheControl is not implemented")
 			}
-			return ec.directives.Cache(ctx, obj, directive0, maxAge)
+			return ec.directives.CacheControl(ctx, obj, directive0, maxAge)
 		}
 
 		tmp, err := directive1(rctx)
@@ -3198,18 +3198,18 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNNewTodo2githubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋgraphᚋmodelᚐNewTodo(ctx context.Context, v interface{}) (model.NewTodo, error) {
+func (ec *executionContext) unmarshalNNewTodo2githubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋexampleᚋgraphᚋmodelᚐNewTodo(ctx context.Context, v interface{}) (model.NewTodo, error) {
 	res, err := ec.unmarshalInputNewTodo(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNRole2githubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋgraphᚋmodelᚐRole(ctx context.Context, v interface{}) (model.Role, error) {
+func (ec *executionContext) unmarshalNRole2githubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋexampleᚋgraphᚋmodelᚐRole(ctx context.Context, v interface{}) (model.Role, error) {
 	var res model.Role
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNRole2githubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
+func (ec *executionContext) marshalNRole2githubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋexampleᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
 	return v
 }
 
@@ -3228,11 +3228,11 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNTodo2githubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋgraphᚋmodelᚐTodo(ctx context.Context, sel ast.SelectionSet, v model.Todo) graphql.Marshaler {
+func (ec *executionContext) marshalNTodo2githubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋexampleᚋgraphᚋmodelᚐTodo(ctx context.Context, sel ast.SelectionSet, v model.Todo) graphql.Marshaler {
 	return ec._Todo(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTodo2ᚕᚖgithubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋgraphᚋmodelᚐTodoᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Todo) graphql.Marshaler {
+func (ec *executionContext) marshalNTodo2ᚕᚖgithubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋexampleᚋgraphᚋmodelᚐTodoᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Todo) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3256,7 +3256,7 @@ func (ec *executionContext) marshalNTodo2ᚕᚖgithubᚗcomᚋfarawaysouthwest�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTodo2ᚖgithubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋgraphᚋmodelᚐTodo(ctx, sel, v[i])
+			ret[i] = ec.marshalNTodo2ᚖgithubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋexampleᚋgraphᚋmodelᚐTodo(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3276,7 +3276,7 @@ func (ec *executionContext) marshalNTodo2ᚕᚖgithubᚗcomᚋfarawaysouthwest�
 	return ret
 }
 
-func (ec *executionContext) marshalNTodo2ᚖgithubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋgraphᚋmodelᚐTodo(ctx context.Context, sel ast.SelectionSet, v *model.Todo) graphql.Marshaler {
+func (ec *executionContext) marshalNTodo2ᚖgithubᚗcomᚋfarawaysouthwestᚋgqlgen_cacheᚋexampleᚋgraphᚋmodelᚐTodo(ctx context.Context, sel ast.SelectionSet, v *model.Todo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
