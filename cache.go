@@ -2,6 +2,8 @@ package gqlgen_cache
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
@@ -107,13 +109,31 @@ func (c *fieldCache) findIdField(obj interface{}) (string, error) {
 
 func (c *fieldCache) generateKey(ctx context.Context, obj interface{}) (uint64, string) {
 
+	var id string
+	var err error
+
 	queryContext := graphql.GetOperationContext(ctx)
 	fieldContext := graphql.GetFieldContext(ctx)
 
-	id, err := c.findIdField(obj)
-	if err != nil {
-		c.logger.Debug("id not found", "error", err)
-		return 0, ""
+	c.logger.Debug("generating key", "object", obj, "queryContext", queryContext.RawQuery)
+
+	if obj != nil {
+		id, err = c.findIdField(obj)
+		if err != nil {
+			c.logger.Debug("id not found", "error", err)
+
+			// If we can't find an ID, we will create a hash based on the object
+			b, err := json.Marshal(obj)
+			if err != nil {
+				c.logger.Debug("failed to marshal object", "error", err)
+				return 0, ""
+			}
+
+			id = base64.StdEncoding.EncodeToString(b)
+		}
+
+	} else {
+		id = base64.StdEncoding.EncodeToString([]byte(queryContext.RawQuery))
 	}
 
 	// Create a struct to hold the relevant data
