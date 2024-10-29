@@ -13,7 +13,7 @@ This project provides a field-level cache middleware for a GraphQL server using 
 To use this middleware, you need to have Go installed. You can install the required dependencies using `go mod`:
 
 ```sh
-go mod tidy
+go get github.com/farawaysouthwest/gqlgen_cache
 ```
 
 ## Usage
