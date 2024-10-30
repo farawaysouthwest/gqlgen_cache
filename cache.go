@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/hashicorp/golang-lru/v2/expirable"
+	"github.com/farawaysouthwest/gqlgen_cache/model"
 	"log/slog"
 	"os"
 	"reflect"
@@ -20,15 +20,8 @@ import (
 type fieldCache struct {
 	mu     sync.RWMutex
 	cap    int
-	store  *expirable.LRU[uint64, cacheField]
+	store  CacheAdapter
 	logger *slog.Logger
-}
-
-type cacheField struct {
-	id      uint64
-	maxAge  int
-	created int64
-	data    interface{}
 }
 
 type keyData struct {
@@ -42,15 +35,13 @@ type FieldCache interface {
 	Handle(ctx context.Context, obj interface{}, next graphql.Resolver, maxAge *int) (res interface{}, err error)
 }
 
-func NewFieldCache(cap int, ttl time.Duration, logLevel slog.Level) FieldCache {
-
-	s := expirable.NewLRU[uint64, cacheField](cap, nil, ttl)
+func NewFieldCache(cap int, ttl time.Duration, logLevel slog.Level, adapter CacheAdapter) FieldCache {
 
 	l := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
 	return &fieldCache{
 		cap:    cap,
-		store:  s,
+		store:  adapter,
 		logger: l,
 	}
 }
@@ -66,6 +57,8 @@ func (c *fieldCache) Handle(ctx context.Context, obj interface{}, next graphql.R
 
 	if v, ok := c.get(key); ok {
 		c.logger.Debug("cache hit", "key", stringKey, "hash", key)
+
+		// Unmarshal the cached data into the expected type
 		return v, nil
 	}
 
@@ -115,8 +108,6 @@ func (c *fieldCache) generateKey(ctx context.Context, obj interface{}) (uint64, 
 	queryContext := graphql.GetOperationContext(ctx)
 	fieldContext := graphql.GetFieldContext(ctx)
 
-	c.logger.Debug("generating key", "object", obj, "queryContext", queryContext.RawQuery)
-
 	if obj != nil {
 		id, err = c.findIdField(obj)
 		if err != nil {
@@ -163,30 +154,30 @@ func (c *fieldCache) get(k uint64) (interface{}, bool) {
 	if !ok {
 		return nil, false
 	}
+	//
+	//if v.Created+int64(v.MaxAge) < time.Now().Unix() {
+	//	c.logger.Debug("cache expired", "key", k)
+	//	c.release(k)
+	//	return nil, false
+	//}
 
-	if v.created+int64(v.maxAge) < time.Now().Unix() {
-		c.logger.Debug("cache expired", "key", k)
-		c.release(k)
-		return nil, false
-	}
-
-	return v.data, ok
+	return v.Data, ok
 }
 
 func (c *fieldCache) set(k uint64, maxAge int, v interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.store.Add(k, cacheField{
-		id:      k,
-		maxAge:  maxAge,
-		created: time.Now().Unix(),
-		data:    v,
+	c.store.Set(k, model.CacheField{
+		Id:      k,
+		MaxAge:  maxAge,
+		Created: time.Now().Unix(),
+		Data:    v,
 	})
 }
 
 func (c *fieldCache) release(k uint64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.store.Remove(k)
+	c.store.Delete(k)
 }

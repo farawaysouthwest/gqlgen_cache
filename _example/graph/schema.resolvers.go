@@ -10,7 +10,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/farawaysouthwest/gqlgen_cache/example/graph/model"
+	"github.com/farawaysouthwest/gqlgen_cache/_example/graph/model"
 )
 
 // CreateTodo is the resolver for the createTodo field.

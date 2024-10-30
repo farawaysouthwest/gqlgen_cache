@@ -14,7 +14,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/farawaysouthwest/gqlgen_cache/example/graph/model"
+	"github.com/farawaysouthwest/gqlgen_cache/_example/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -553,7 +553,7 @@ func (ec *executionContext) _Query_todos(ctx context.Context, field graphql.Coll
 		if data, ok := tmp.([]*model.Todo); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/farawaysouthwest/gqlgen_cache/example/graph/model.Todo`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/farawaysouthwest/gqlgen_cache/_example/graph/model.Todo`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -933,7 +933,7 @@ func (ec *executionContext) _Todo_user(ctx context.Context, field graphql.Collec
 		if data, ok := tmp.(*model.User); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/farawaysouthwest/gqlgen_cache/example/graph/model.User`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/farawaysouthwest/gqlgen_cache/_example/graph/model.User`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)

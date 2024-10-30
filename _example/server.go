@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/farawaysouthwest/gqlgen_cache"
-	"github.com/farawaysouthwest/gqlgen_cache/example/graph"
+	"github.com/farawaysouthwest/gqlgen_cache/_example/graph"
 	"log"
 	"log/slog"
 	"net/http"
@@ -24,7 +24,14 @@ func main() {
 		port = defaultPort
 	}
 
-	cache := gqlgen_cache.NewFieldCache(100, time.Second*5, slog.LevelDebug)
+	var adapter gqlgen_cache.CacheAdapter
+	if os.Getenv("USE_VALKEY") == "true" {
+		adapter = gqlgen_cache.NewValKeyCache(time.Second * 5)
+	} else {
+		adapter = gqlgen_cache.NewInMemoryCache(100, time.Second*5)
+	}
+
+	cache := gqlgen_cache.NewFieldCache(100, time.Second*5, slog.LevelDebug, adapter)
 
 	c := graph.Config{Resolvers: &graph.Resolver{}}
 	c.Directives.CacheControl = cache.Handle
