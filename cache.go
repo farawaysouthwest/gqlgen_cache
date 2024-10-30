@@ -4,13 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"log/slog"
 	"os"
-	"reflect"
 	"time"
 
 	"hash/fnv"
@@ -33,9 +31,8 @@ type cacheField struct {
 
 type keyData struct {
 	FieldName  string
-	Args       map[string]interface{}
 	ObjectName string
-	parent     interface{}
+	opHash     string
 }
 
 type FieldCache interface {
@@ -80,71 +77,43 @@ func (c *fieldCache) Handle(ctx context.Context, obj interface{}, next graphql.R
 	return res, nil
 }
 
-func (c *fieldCache) findIdField(obj interface{}) (string, error) {
-	v := reflect.ValueOf(obj)
-
-	// Ensure we have a pointer to a struct
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-
-	if v.Kind() != reflect.Struct {
-		if v.Kind() == reflect.String {
-			return v.String(), nil
-		}
-
-		return "", errors.New("expected a struct or a string")
-	}
-
-	// Iterate over the fields of the struct
-	for i := 0; i < v.NumField(); i++ {
-		field := v.Type().Field(i)
-		if field.Name == "ID" || field.Name == "Id" || field.Name == "id" {
-			return v.Field(i).String(), nil
-		}
-	}
-
-	return "", errors.New("id field not found")
-}
-
 func (c *fieldCache) generateKey(ctx context.Context, obj interface{}) (uint64, string) {
 
 	var id string
-	var err error
 
 	queryContext := graphql.GetOperationContext(ctx)
 	fieldContext := graphql.GetFieldContext(ctx)
 
-	c.logger.Debug("generating key", "object", obj, "queryContext", queryContext.RawQuery)
+	bv, err := json.Marshal(queryContext.Variables)
+	if err != nil {
+		c.logger.Debug("failed to marshal variables", "error", err)
+		return 0, ""
+	}
 
 	if obj != nil {
-		id, err = c.findIdField(obj)
+		b, err := json.Marshal(obj)
 		if err != nil {
-			c.logger.Debug("id not found", "error", err)
-
-			// If we can't find an ID, we will create a hash based on the object
-			b, err := json.Marshal(obj)
-			if err != nil {
-				c.logger.Debug("failed to marshal object", "error", err)
-				return 0, ""
-			}
-
-			id = base64.StdEncoding.EncodeToString(b)
+			c.logger.Debug("failed to marshal object", "error", err)
+			return 0, ""
 		}
+		b = append(b, bv...)
 
+		id = base64.StdEncoding.EncodeToString(b)
 	} else {
-		id = base64.StdEncoding.EncodeToString([]byte(queryContext.RawQuery))
+
+		b := append([]byte(queryContext.RawQuery), bv...)
+
+		id = base64.StdEncoding.EncodeToString(b)
 	}
 
 	// Create a struct to hold the relevant data
 	data := keyData{
-		FieldName:  fieldContext.Field.Name,
-		Args:       queryContext.Variables,
 		ObjectName: fieldContext.Object,
-		parent:     id,
+		FieldName:  fieldContext.Field.Name,
+		opHash:     id,
 	}
 
-	b := fmt.Sprint(data.ObjectName, ":", data.FieldName, ":", data.Args, ":", data.parent)
+	b := fmt.Sprint(data.ObjectName, ":", data.FieldName, ":", data.opHash)
 
 	hash := fnv.New64a()
 
